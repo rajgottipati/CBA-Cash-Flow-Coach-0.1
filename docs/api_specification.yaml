@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: Orchestra Agent Gateway API
+  description: |
+    API contract for the Virtual Relationship Manager (VRM) orchestration layer.
+    Uses Server-Sent Events (SSE) to stream agent thoughts, trust layer updates, and final responses.
+  version: 1.0.0
+  contact:
+    name: Platform Engineering Team
+    email: platform@cba.com.au
+
+servers:
+  - url: https://api.cba.com.au/vrm/v1
+    description: Production Gateway
+
+paths:
+  /orchestrator/stream:
+    post:
+      summary: Stream Agent Interaction
+      description: |
+        Initiates a multi-agent orchestration session. Returns a stream of events including
+        status updates (thinking), intermediate artifacts (charts), and final text.
+      operationId: streamAgentResponse
+      tags:
+        - Orchestrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - userMessage
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                userMessage:
+                  type: string
+                  example: "How is my cash flow looking for next month?"
+                context:
+                  type: object
+                  description: Client-side context (e.g., current view, selected account).
+                  properties:
+                    accountId:
+                      type: string
+                    userTimezone:
+                      type: string
+      responses:
+        '200':
+          description: SSE Stream Established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Stream of JSON objects.
+                  Event Types:
+                  - agent_update: { agent: 'analyst', status: 'thinking' }
+                  - trust_update: { step: 'pii_redaction', status: 'success', details: {...} }
+                  - content_delta: { text: 'Based on...' }
+                  - artifact: { type: 'chart', data: {...} }
+                  - error: { code: 'POLICY_BLOCK', message: '...' }
+        '400':
+          description: Invalid Request (e.g., missing session ID)
+        '401':
+          description: Unauthorized (Invalid JWT)
+        '429':
+          description: Rate Limit Exceeded (Global Throttling)
+
+  /orchestrator/feedback:
+    post:
+      summary: Submit User Feedback
+      description: RLHF endpoint to capture user satisfaction with agent response.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messageId:
+                  type: string
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '202':
+          description: Feedback Accepted
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
