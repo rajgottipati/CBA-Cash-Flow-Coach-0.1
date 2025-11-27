@@ -112,20 +112,32 @@ export const runOrchestration = (
               const safePhrase = "You could consider";
               let finalText = draftText;
               let intercepted = false;
+              let detailsPayload = {};
 
               if (draftText.includes(unsafePhrase)) {
                 finalText = draftText.replace(unsafePhrase, safePhrase);
                 intercepted = true;
-              }
+                
+                // Generate context snippets for Trust Panel
+                const idx = draftText.indexOf(unsafePhrase);
+                // Create a snippet around the detected phrase
+                const snippetStart = Math.max(0, idx - 15);
+                const snippetEnd = Math.min(draftText.length, idx + unsafePhrase.length + 30);
+                
+                const beforeContext = draftText.substring(snippetStart, snippetEnd);
+                const afterContext = beforeContext.replace(unsafePhrase, safePhrase);
 
-              if (intercepted) {
-                updateTrustStep('reg_interceptor', 'success', 'Content Modified', { 
+                detailsPayload = { 
                   rule: 'ASIC General Advice (RG 244)',
                   action: 'REWRITE',
                   detected_phrase: unsafePhrase,
-                  before: "...You should increase...",
-                  after: "...You could consider increase..."
-                });
+                  before: `...${beforeContext}...`,
+                  after: `...${afterContext}...`
+                };
+              }
+
+              if (intercepted) {
+                updateTrustStep('reg_interceptor', 'success', 'Content Modified', detailsPayload);
               } else {
                  updateTrustStep('reg_interceptor', 'success', 'Compliance Check Passed');
               }
