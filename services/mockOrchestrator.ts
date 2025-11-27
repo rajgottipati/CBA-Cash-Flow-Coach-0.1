@@ -99,65 +99,96 @@ export const runOrchestration = (
 
           setTimeout(() => {
             updateTrustStep('strategist', 'success', 'Context Retrieved', { source: 'Industry Benchmarks: Retail (Sydney)' });
-            onAgentUpdate('strategist', 'active');
             
-            onMessage({
-              agent: 'strategist',
-              text: "Comparing this to similar retail businesses in Sydney, your supplier payment terms (Net 15) are tighter than the industry average (Net 30). This is creating artificial pressure on your cash cycle.",
-              confidence: 0.85
-            });
+            // 4.5 REGULATORY INTERCEPTOR
+            addTrustStep({ id: 'reg_interceptor', label: 'Regulatory Interceptor', status: 'processing', details: 'Scanning for advice compliance...' });
 
-            // 5. BANKER & NEXUS GATE
             setTimeout(() => {
-              onAgentUpdate('strategist', 'idle');
-              onAgentUpdate('banker', 'thinking');
-              addTrustStep({ id: 'nexus', label: 'Nexus Policy Gate', status: 'processing', details: 'Checking eligibility...' });
+              // Initial Draft (Unsafe)
+              const draftText = "Comparing this to similar retail businesses in Sydney, your supplier payment terms (Net 15) are tighter than the industry average (Net 30). You should increase your prices immediately to buffer the cash cycle.";
+              
+              // Interception Logic
+              const unsafePhrase = "You should";
+              const safePhrase = "You could consider";
+              let finalText = draftText;
+              let intercepted = false;
 
+              if (draftText.includes(unsafePhrase)) {
+                finalText = draftText.replace(unsafePhrase, safePhrase);
+                intercepted = true;
+              }
+
+              if (intercepted) {
+                updateTrustStep('reg_interceptor', 'success', 'Content Modified', { 
+                  rule: 'ASIC General Advice (RG 244)',
+                  action: 'REWRITE',
+                  detected_phrase: unsafePhrase,
+                  before: "...You should increase...",
+                  after: "...You could consider increase..."
+                });
+              } else {
+                 updateTrustStep('reg_interceptor', 'success', 'Compliance Check Passed');
+              }
+
+              onAgentUpdate('strategist', 'active');
+              onMessage({
+                agent: 'strategist',
+                text: finalText,
+                confidence: 0.85
+              });
+
+              // 5. BANKER & NEXUS GATE
               setTimeout(() => {
-                const isEligible = scenario !== 'ineligible';
-                
-                if (isEligible) {
-                  updateTrustStep('nexus', 'success', 'ELIGIBLE', { 
-                    credit_score: 720, 
-                    threshold: 600,
-                    revenue_check: 'PASS',
-                    time_in_business: '3 years'
-                  });
-                  onAgentUpdate('banker', 'active');
-                  onMessage({
-                    agent: 'banker',
-                    text: "Given your strong repayment history and revenue stability, you are pre-approved for a Business Overdraft to cover this gap.",
-                    offer: {
-                      product: "Business Overdraft",
-                      limit: 10000,
-                      rate: "8.5% p.a."
-                    },
-                    nexus_check: { status: 'PASS' }
-                  });
-                } else {
-                   updateTrustStep('nexus', 'warning', 'INELIGIBLE', { 
-                    credit_score: 580, 
-                    threshold: 600,
-                    reason: 'Credit Score below policy threshold'
-                  });
-                  onAgentUpdate('banker', 'active');
-                  onMessage({
-                    agent: 'banker',
-                    text: "Based on current policy settings, an overdraft isn't available right now. However, I can recommend three cash flow preservation strategies to manage the upcoming shortfall.",
-                    nexus_check: { status: 'FAIL', reason: 'Credit Score < Threshold' }
-                  });
-                }
-                
-                setTimeout(() => {
-                  onAgentUpdate('banker', 'idle');
-                  onComplete();
-                }, 1000);
+                onAgentUpdate('strategist', 'idle');
+                onAgentUpdate('banker', 'thinking');
+                addTrustStep({ id: 'nexus', label: 'Nexus Policy Gate', status: 'processing', details: 'Checking eligibility...' });
 
+                setTimeout(() => {
+                  const isEligible = scenario !== 'ineligible';
+                  
+                  if (isEligible) {
+                    updateTrustStep('nexus', 'success', 'ELIGIBLE', { 
+                      credit_score: 720, 
+                      threshold: 600,
+                      revenue_check: 'PASS',
+                      time_in_business: '3 years'
+                    });
+                    onAgentUpdate('banker', 'active');
+                    onMessage({
+                      agent: 'banker',
+                      text: "Given your strong repayment history and revenue stability, you are pre-approved for a Business Overdraft to cover this gap.",
+                      offer: {
+                        product: "Business Overdraft",
+                        limit: 10000,
+                        rate: "8.5% p.a."
+                      },
+                      nexus_check: { status: 'PASS' }
+                    });
+                  } else {
+                    updateTrustStep('nexus', 'warning', 'INELIGIBLE', { 
+                      credit_score: 580, 
+                      threshold: 600,
+                      reason: 'Credit Score below policy threshold'
+                    });
+                    onAgentUpdate('banker', 'active');
+                    onMessage({
+                      agent: 'banker',
+                      text: "Based on current policy settings, an overdraft isn't available right now. However, I can recommend three cash flow preservation strategies to manage the upcoming shortfall.",
+                      nexus_check: { status: 'FAIL', reason: 'Credit Score < Threshold' }
+                    });
+                  }
+                  
+                  setTimeout(() => {
+                    onAgentUpdate('banker', 'idle');
+                    onComplete();
+                  }, 1000);
+
+                }, 1500);
               }, 1500);
-            }, 1500);
-          }, 1500);
-        }, 1500);
-      }, 1500);
-    }, 1000);
-  }, 800);
+            }, 800); // Delay for Regulatory Scan
+          }, 1500); // Delay for Strategist Thinking
+        }, 1500); // Delay for Analyst Reading
+      }, 1500); // Delay for Analyst Thinking
+    }, 1000); // Delay for Sentinel
+  }, 800); // Delay for PII
 };

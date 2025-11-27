@@ -5,7 +5,7 @@ import { ChatInterface } from './components/ChatInterface';
 import { ArchitectureView } from './components/ArchitectureView';
 import { AgentType, AgentStatus, Message, TrustStep } from './types';
 import { runOrchestration } from './services/mockOrchestrator';
-import { MessageSquare, Layers } from 'lucide-react';
+import { MessageSquare, Layers, Eye, EyeOff } from 'lucide-react';
 
 const INITIAL_AGENT_STATES: Record<AgentType, AgentStatus> = {
   analyst: 'idle',
@@ -20,6 +20,7 @@ export default function App() {
   const [agentStates, setAgentStates] = useState(INITIAL_AGENT_STATES);
   const [trustSteps, setTrustSteps] = useState<TrustStep[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGlassBox, setIsGlassBox] = useState(true);
 
   const handleSendMessage = (text: string, scenario: any) => {
     // Add user message
@@ -100,6 +101,21 @@ export default function App() {
             <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700">PROTOTYPE v0.1</span>
           </div>
           <div className="flex items-center gap-4 text-xs">
+            {/* Glass Box Toggle */}
+            <button 
+              onClick={() => setIsGlassBox(!isGlassBox)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                isGlassBox 
+                  ? 'bg-cba-yellow/10 border-cba-yellow/30 text-cba-yellow' 
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+              }`}
+            >
+              {isGlassBox ? <Eye size={14} /> : <EyeOff size={14} />}
+              <span>Glass Box Mode: {isGlassBox ? 'ON' : 'OFF'}</span>
+            </button>
+
+            <div className="w-px h-4 bg-slate-700 mx-2"></div>
+
             <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-900/10 px-2 py-1 rounded border border-emerald-900/30">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               System Operational
@@ -115,8 +131,8 @@ export default function App() {
               isProcessing={isProcessing} 
               onSendMessage={handleSendMessage} 
             />
-            {/* Right Sidebar: Trust Layer */}
-            <TrustPanel steps={trustSteps} />
+            {/* Right Sidebar: Trust Layer - conditionally rendered based on Toggle */}
+            {isGlassBox && <TrustPanel steps={trustSteps} />}
           </div>
         ) : (
           <ArchitectureView />

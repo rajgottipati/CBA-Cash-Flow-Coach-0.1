@@ -1,7 +1,84 @@
-import React from 'react';
-import { Database, Shield, Brain, Layers, Server, Globe, Lock } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import mermaid from 'mermaid';
+
+const diagramDefinition = `
+graph TB
+  %% Styles
+  classDef container fill:#0f172a,stroke:#1e293b,color:#fff
+  classDef component fill:#1e293b,stroke:#334155,color:#cbd5e1
+  classDef trust fill:#064e3b,stroke:#059669,color:#ecfdf5
+  classDef agent fill:#422006,stroke:#eab308,color:#fefce8
+
+  User[Business Customer] --> UI[React Chat UI]
+  UI --> Supervisor[Global Supervisor<br/>XState Machine]
+
+  subgraph "Orchestra Secure Enclave (VPC)"
+    direction TB
+
+    Supervisor --> Agents
+
+    subgraph Agents [Agent Pool]
+      direction TB
+      Analyst[Analyst Agent<br/>Python Forecast]:::agent
+      Strategist[Strategist Agent<br/>RAG + Vector DB]:::agent
+      Banker[Banker Agent<br/>Nexus Policy]:::agent
+      Sentinel[Sentinel Agent<br/>Security]:::agent
+    end
+
+    Agents --> Trust
+
+    subgraph Trust [Trust & Governance Layer]
+      direction TB
+      PII[PII Redaction]:::trust
+      Reg[Regulatory Check]:::trust
+      Policy[Nexus Policy Gate]:::trust
+    end
+
+    Trust --> Integration
+  end
+
+  subgraph Integration [Integration Layer]
+    Legacy[Legacy Adapter<br/>SAP/Oracle]:::component
+    ModelGW[Model Gateway<br/>LiteLLM]:::component
+  end
+
+  Trust --> ModelGW
+  Policy --> Legacy
+`;
 
 export const ArchitectureView: React.FC = () => {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [svgContent, setSvgContent] = useState<string>('');
+
+  useEffect(() => {
+    const renderChart = async () => {
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'dark',
+          securityLevel: 'loose',
+          fontFamily: 'Inter, sans-serif',
+          themeVariables: {
+            darkMode: true,
+            background: '#020617',
+            primaryColor: '#eab308',
+            secondaryColor: '#10b981',
+            tertiaryColor: '#1e293b',
+            lineColor: '#64748b',
+            fontSize: '14px'
+          }
+        });
+        
+        const { svg } = await mermaid.render('mermaid-chart-' + Date.now(), diagramDefinition);
+        setSvgContent(svg);
+      } catch (error) {
+        console.error("Mermaid failed to render", error);
+      }
+    };
+
+    renderChart();
+  }, []);
+
   return (
     <div className="flex-1 bg-slate-900 p-8 overflow-y-auto">
       <div className="max-w-5xl mx-auto">
@@ -11,79 +88,18 @@ export const ArchitectureView: React.FC = () => {
         </div>
 
         {/* Diagram Container */}
-        <div className="bg-slate-800/50 rounded-xl p-8 border border-slate-700 relative overflow-hidden">
-          
-          {/* Background Grid */}
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-
-          <div className="relative z-10 flex flex-col gap-12 items-center">
-            
-            {/* User Layer */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="bg-white text-slate-900 px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2">
-                <Globe size={18} /> React Frontend
-              </div>
-              <div className="h-8 w-px bg-slate-600"></div>
-            </div>
-
-            {/* Supervisor Layer */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8">
-              
-              {/* Trust Layer (Left) */}
-              <div className="bg-slate-900/80 p-6 rounded-lg border border-emerald-500/30 flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold border-b border-emerald-500/20 pb-2">
-                  <Shield size={20} /> Trust Layer
-                </div>
-                <div className="space-y-3">
-                  <div className="bg-slate-800 p-3 rounded text-sm text-slate-300 flex items-center gap-2 border border-slate-700">
-                    <Lock size={14} /> PII Redaction
-                  </div>
-                  <div className="bg-slate-800 p-3 rounded text-sm text-slate-300 flex items-center gap-2 border border-slate-700">
-                    <Layers size={14} /> Nexus Policy Gate
-                  </div>
-                  <div className="bg-slate-800 p-3 rounded text-sm text-slate-300 flex items-center gap-2 border border-slate-700">
-                    <Shield size={14} /> Regulatory Check
-                  </div>
-                </div>
-              </div>
-
-              {/* Agents (Center) */}
-              <div className="bg-slate-900/80 p-6 rounded-lg border border-cba-yellow/30 flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-cba-yellow font-bold border-b border-cba-yellow/20 pb-2">
-                  <Brain size={20} /> Agent Swarm
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-800 p-2 rounded text-xs text-center border border-slate-700">Analyst<br/>(Python)</div>
-                  <div className="bg-slate-800 p-2 rounded text-xs text-center border border-slate-700">Strategist<br/>(RAG)</div>
-                  <div className="bg-slate-800 p-2 rounded text-xs text-center border border-slate-700">Banker<br/>(Policy)</div>
-                  <div className="bg-slate-800 p-2 rounded text-xs text-center border border-slate-700">Sentinel<br/>(Guard)</div>
-                </div>
-              </div>
-
-              {/* Integration (Right) */}
-              <div className="bg-slate-900/80 p-6 rounded-lg border border-blue-500/30 flex flex-col gap-4">
-                <div className="flex items-center gap-2 text-blue-400 font-bold border-b border-blue-500/20 pb-2">
-                  <Server size={20} /> Core Systems
-                </div>
-                 <div className="space-y-3">
-                  <div className="bg-slate-800 p-3 rounded text-sm text-slate-300 flex items-center gap-2 border border-slate-700">
-                    <Database size={14} /> SAP / Oracle
-                  </div>
-                  <div className="bg-slate-800 p-3 rounded text-sm text-slate-300 flex items-center gap-2 border border-slate-700">
-                    <Database size={14} /> Model Gateway
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-             {/* Arrows/Flow */}
-             <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
-                <path d="M400 50 L400 120" stroke="white" strokeWidth="2" />
-                <path d="M200 200 L600 200" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
-             </svg>
-
-          </div>
+        <div className="bg-slate-950 rounded-xl p-8 border border-slate-800 relative overflow-hidden flex justify-center min-h-[400px]">
+           {svgContent ? (
+             <div 
+               ref={chartRef} 
+               className="w-full flex justify-center"
+               dangerouslySetInnerHTML={{ __html: svgContent }}
+             />
+           ) : (
+             <div className="flex items-center justify-center text-slate-500">
+               Loading Architecture Diagram...
+             </div>
+           )}
         </div>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">

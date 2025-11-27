@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Message } from '../types';
 import { Bot, User, AlertOctagon, CheckCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -10,7 +10,7 @@ interface ChatInterfaceProps {
 }
 
 const ChartComponent = ({ data, threshold }: { data: any[], threshold: number }) => (
-  <div className="mt-4 h-48 w-full bg-slate-900/50 rounded-lg p-2 border border-slate-700">
+  <div className="mt-4 h-48 w-full bg-slate-900/50 rounded-lg p-2 border border-slate-700 animate-in fade-in slide-in-from-bottom-2 duration-500">
     <div className="text-xs text-slate-400 mb-2 font-mono">30-Day Cash Flow Projection</div>
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
@@ -26,6 +26,98 @@ const ChartComponent = ({ data, threshold }: { data: any[], threshold: number })
     </ResponsiveContainer>
   </div>
 );
+
+// Typewriter Component for streaming effect
+const Typewriter = ({ text, speed = 15, onComplete }: { text: string, speed?: number, onComplete?: () => void }) => {
+  const [displayText, setDisplayText] = useState('');
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    // Reset if text changes significantly (new message re-using component)
+    if (!text.startsWith(displayText) && displayText !== '') {
+      setDisplayText('');
+      indexRef.current = 0;
+    }
+  }, [text]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (indexRef.current < text.length) {
+        setDisplayText((prev) => prev + text.charAt(indexRef.current));
+        indexRef.current += 1;
+      } else {
+        clearInterval(timer);
+        if (onComplete) onComplete();
+      }
+    }, speed);
+
+    return () => clearInterval(timer);
+  }, [text, speed, onComplete]);
+
+  return <span>{displayText}</span>;
+};
+
+// Individual Message Bubble to isolate state
+const MessageBubble = ({ msg }: { msg: Message }) => {
+  const [isTyping, setIsTyping] = useState(msg.role === 'assistant');
+
+  return (
+    <div className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} max-w-4xl mx-auto w-full`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-slate-700' : 'bg-cba-yellow'}`}>
+        {msg.role === 'user' ? <User size={16} /> : <Bot size={16} className="text-black" />}
+      </div>
+      
+      <div className={`flex flex-col gap-2 max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+        <div className={`p-4 rounded-xl text-sm leading-relaxed shadow-sm ${
+          msg.role === 'user' 
+            ? 'bg-slate-800 text-slate-100 rounded-tr-none' 
+            : msg.data?.isError 
+              ? 'bg-red-900/20 border border-red-900/50 text-red-200 rounded-tl-none'
+              : 'bg-white text-slate-900 rounded-tl-none'
+        }`}>
+          {msg.role === 'assistant' && msg.data?.agent && (
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200/20 text-xs font-bold uppercase tracking-wider opacity-70">
+              <span className={`w-2 h-2 rounded-full ${msg.data.agent === 'sentinel' ? 'bg-red-500' : 'bg-cba-yellow'}`}></span>
+              {msg.data.agent} Agent
+            </div>
+          )}
+          
+          <div className="whitespace-pre-wrap">
+            {msg.role === 'assistant' ? (
+              <Typewriter text={msg.content} onComplete={() => setIsTyping(false)} />
+            ) : (
+              msg.content
+            )}
+          </div>
+
+          {/* Forecast Chart Render - Only after typing finishes */}
+          {!isTyping && msg.data?.forecast && (
+            <ChartComponent data={msg.data.forecast.next_30_days} threshold={0} />
+          )}
+
+          {/* Product Offer Render - Only after typing finishes */}
+          {!isTyping && msg.data?.offer && (
+            <div className="mt-4 bg-yellow-50 rounded-lg p-4 border border-yellow-200 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex items-center gap-2 text-yellow-800 font-bold mb-2">
+                <CheckCircle size={16} /> Eligible Offer Found
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm text-slate-800">
+                <div>
+                  <div className="text-xs text-slate-500">Product</div>
+                  <div className="font-semibold">{msg.data.offer.product}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Limit</div>
+                  <div className="font-semibold">${msg.data.offer.limit.toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isProcessing, onSendMessage }) => {
   const [inputValue, setInputValue] = React.useState('');
@@ -50,7 +142,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isProces
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-900/50 relative">
+    <div className="flex-1 flex flex-col h-full bg-slate-900/50 relative transition-all duration-300">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (
@@ -62,54 +154,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isProces
         )}
         
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} max-w-4xl mx-auto w-full`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-slate-700' : 'bg-cba-yellow'}`}>
-              {msg.role === 'user' ? <User size={16} /> : <Bot size={16} className="text-black" />}
-            </div>
-            
-            <div className={`flex flex-col gap-2 max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`p-4 rounded-xl text-sm leading-relaxed shadow-sm ${
-                msg.role === 'user' 
-                  ? 'bg-slate-800 text-slate-100 rounded-tr-none' 
-                  : msg.data?.isError 
-                    ? 'bg-red-900/20 border border-red-900/50 text-red-200 rounded-tl-none'
-                    : 'bg-white text-slate-900 rounded-tl-none'
-              }`}>
-                {msg.role === 'assistant' && msg.data?.agent && (
-                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200/20 text-xs font-bold uppercase tracking-wider opacity-70">
-                    <span className={`w-2 h-2 rounded-full ${msg.data.agent === 'sentinel' ? 'bg-red-500' : 'bg-cba-yellow'}`}></span>
-                    {msg.data.agent} Agent
-                  </div>
-                )}
-                
-                {msg.content}
-
-                {/* Forecast Chart Render */}
-                {msg.data?.forecast && (
-                  <ChartComponent data={msg.data.forecast.next_30_days} threshold={0} />
-                )}
-
-                {/* Product Offer Render */}
-                {msg.data?.offer && (
-                  <div className="mt-4 bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                    <div className="flex items-center gap-2 text-yellow-800 font-bold mb-2">
-                      <CheckCircle size={16} /> Eligible Offer Found
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm text-slate-800">
-                      <div>
-                        <div className="text-xs text-slate-500">Product</div>
-                        <div className="font-semibold">{msg.data.offer.product}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">Limit</div>
-                        <div className="font-semibold">${msg.data.offer.limit.toLocaleString()}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <MessageBubble key={msg.id} msg={msg} />
         ))}
         <div ref={messagesEndRef} />
       </div>
