@@ -1,0 +1,5 @@
+{
+  "name": "CBA Cash Flow Coach",
+  "description": "A multi-agent AI orchestration prototype for Business Banking, featuring a Trust Layer, Policy Gating, and Red Team security modes.",
+  "requestFramePermissions": []
+}
