@@ -1,0 +1,57 @@
+# LiteLLM Proxy Configuration
+# This defines the Model Gateway layer that sits between the Agents and the LLM Providers.
+# Key Features: Model Fallbacks, Load Balancing, and FinOps Budgeting.
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  alerting: ["slack", "pagerduty"]
+
+model_list:
+  # Primary Model (High Intelligence)
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+      rpm: 10000
+      timeout: 30
+
+  # Fallback Model (Resilience/Backup)
+  - model_name: claude-3-5-sonnet
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20240620
+      api_key: os.environ/ANTHROPIC_API_KEY
+      rpm: 5000
+
+  # Local/Private Model (For PII Sensitive Tasks)
+  - model_name: mistral-7b-instruct
+    litellm_params:
+      model: ollama/mistral
+      api_base: http://internal-inference-cluster:11434
+
+router_settings:
+  model_group_alias: "orchestra-main"
+  routing_strategy: "latency-based-routing" # Routes to the fastest healthy provider
+  
+  # Reliability: If GPT-4o fails or rate limits, auto-switch to Claude
+  fallbacks: 
+    - {"gpt-4o": ["claude-3-5-sonnet"]}
+  
+  # Retry Policy
+  num_retries: 3
+  allowed_fails: 3
+
+budget_manager:
+  enabled: true
+  storage: "redis"
+  url: "redis://redis-cache:6379"
+  
+  # FinOps Controls
+  max_budget_per_user: 5.00 # USD per day
+  max_budget_per_project: 1000.00 # USD per month
+  reset_duration: "30d"
+
+guardrails:
+  input_guardrails:
+    - presidio_pii_masking
+  output_guardrails:
+    - hallucinations_check

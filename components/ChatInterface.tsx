@@ -58,7 +58,7 @@ const Typewriter = ({ text, speed = 15, onComplete }: { text: string, speed?: nu
 };
 
 // Individual Message Bubble to isolate state
-const MessageBubble = ({ msg }: { msg: Message }) => {
+const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => {
   const [isTyping, setIsTyping] = useState(msg.role === 'assistant');
 
   return (
