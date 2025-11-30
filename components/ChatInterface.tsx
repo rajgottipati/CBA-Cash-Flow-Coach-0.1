@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Message } from '../types';
 import { Bot, User, AlertOctagon, CheckCircle } from 'lucide-react';
@@ -63,8 +64,8 @@ const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => {
 
   return (
     <div className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} max-w-4xl mx-auto w-full`}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-slate-700' : 'bg-cba-yellow'}`}>
-        {msg.role === 'user' ? <User size={16} /> : <Bot size={16} className="text-black" />}
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-slate-700' : 'bg-indigo-500'}`}>
+        {msg.role === 'user' ? <User size={16} /> : <Bot size={16} className="text-white" />}
       </div>
       
       <div className={`flex flex-col gap-2 max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -77,7 +78,7 @@ const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => {
         }`}>
           {msg.role === 'assistant' && msg.data?.agent && (
             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200/20 text-xs font-bold uppercase tracking-wider opacity-70">
-              <span className={`w-2 h-2 rounded-full ${msg.data.agent === 'sentinel' ? 'bg-red-500' : 'bg-cba-yellow'}`}></span>
+              <span className={`w-2 h-2 rounded-full ${msg.data.agent === 'sentinel' ? 'bg-red-500' : 'bg-indigo-500'}`}></span>
               {msg.data.agent} Agent
             </div>
           )}
@@ -148,7 +149,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isProces
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50">
             <Bot size={48} className="mb-4 text-slate-600" />
-            <p>Orchestra Agent System Online</p>
+            <p>CBA Virtual Relationship Manager</p>
             <p className="text-sm">Awaiting inputs...</p>
           </div>
         )}
@@ -163,28 +164,28 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isProces
       <div className="p-4 border-t border-slate-800 bg-slate-900">
         <div className="max-w-4xl mx-auto space-y-3">
           
-          {/* Quick Actions (Red Team) */}
+          {/* Quick Actions (Security Tests) */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button 
               onClick={() => handleSend('ineligible')}
               disabled={isProcessing}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-full border border-slate-700 transition whitespace-nowrap"
             >
-              Test Ineligible Customer
+              Test: Ineligible Customer
             </button>
             <button 
               onClick={() => handleSend('redteam_injection')}
               disabled={isProcessing}
               className="px-3 py-1.5 bg-red-900/20 hover:bg-red-900/40 text-xs text-red-400 rounded-full border border-red-900/50 flex items-center gap-1 transition whitespace-nowrap"
             >
-              <AlertOctagon size={12} /> Red Team: Prompt Injection
+              <AlertOctagon size={12} /> Test: Prompt Injection
             </button>
             <button 
               onClick={() => handleSend('redteam_pii')}
               disabled={isProcessing}
               className="px-3 py-1.5 bg-red-900/20 hover:bg-red-900/40 text-xs text-red-400 rounded-full border border-red-900/50 flex items-center gap-1 transition whitespace-nowrap"
             >
-               <AlertOctagon size={12} /> Red Team: PII Leak
+               <AlertOctagon size={12} /> Test: PII Leak
             </button>
           </div>
 
@@ -196,12 +197,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isProces
               onKeyDown={(e) => e.key === 'Enter' && handleSend('standard')}
               placeholder="Ask the Cash Flow Coach..."
               disabled={isProcessing}
-              className="w-full bg-slate-800 text-slate-100 rounded-lg pl-4 pr-24 py-3 focus:outline-none focus:ring-2 focus:ring-cba-yellow/50 border border-slate-700 placeholder:text-slate-500"
+              className="w-full bg-slate-800 text-slate-100 rounded-lg pl-4 pr-24 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 border border-slate-700 placeholder:text-slate-500"
             />
             <button
               onClick={() => handleSend('standard')}
               disabled={isProcessing || !inputValue.trim()}
-              className="absolute right-2 top-2 bottom-2 px-4 bg-cba-yellow text-black font-semibold rounded-md hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="absolute right-2 top-2 bottom-2 px-4 bg-indigo-500 text-white font-semibold rounded-md hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Send
             </button>

@@ -1,79 +1,85 @@
-import React, { useRef, useEffect } from 'react';
-import { TrustStep } from '../types';
-import { CheckCircle2, Circle, Loader2, XCircle, AlertTriangle, Code, ShieldAlert } from 'lucide-react';
 
-interface TrustPanelProps {
-  steps: TrustStep[];
+import React, { useRef, useEffect } from 'react';
+import { TrustEvent } from '../types';
+import { ShieldCheck, Lock, Activity, Terminal } from 'lucide-react';
+
+interface Props {
+  logs: TrustEvent[];
 }
 
-export const TrustPanel: React.FC<TrustPanelProps> = ({ steps }) => {
+export const TrustPanel: React.FC<Props> = ({ logs }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [steps]);
+  }, [logs]);
+
+  const getIcon = (cat: string) => {
+    switch(cat) {
+      case 'PII': return Lock;
+      case 'NEXUS': return ShieldCheck;
+      default: return Activity;
+    }
+  };
+
+  const getColor = (status: string) => {
+    switch(status) {
+      case 'PASS': return 'text-emerald-400';
+      case 'FAIL': return 'text-red-400';
+      case 'WARN': return 'text-amber-400';
+      default: return 'text-blue-400';
+    }
+  };
 
   return (
-    <div className="w-80 bg-slate-950 border-l border-slate-800 flex flex-col h-full hidden lg:flex">
-      <div className="p-4 border-b border-slate-800 bg-slate-900/50">
-        <h3 className="font-semibold text-sm text-slate-300 flex items-center gap-2">
-          <ShieldAlert size={16} className="text-emerald-500" />
-          Trust Layer & Governance
-        </h3>
+    <div className="h-full flex flex-col bg-[#0a0f1e] text-slate-300 font-mono text-xs border-l border-slate-800 w-80 shadow-2xl z-20">
+      <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-[#0f1629]">
+        <div className="flex items-center gap-2">
+          <Terminal size={14} className="text-slate-400" />
+          <span className="font-bold tracking-wider text-slate-200">TRUST_LAYER_V2</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-[10px] text-emerald-500">LIVE</span>
+        </div>
       </div>
-      
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {steps.length === 0 && (
-          <div className="text-center mt-10 text-slate-600 text-sm">
-            <p>Ready to inspect</p>
-            <p className="text-xs mt-1">Awaiting interaction trace...</p>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-hide">
+        {logs.length === 0 && (
+          <div className="opacity-30 text-center mt-10">
+            AWAITING_SEQUENCE_INIT...
           </div>
         )}
-
-        {steps.map((step) => (
-          <div key={step.id} className="relative pl-6 pb-2">
-            {/* Connector Line */}
-            <div className="absolute left-[9px] top-6 bottom-0 w-px bg-slate-800 last:hidden"></div>
-            
-            {/* Status Icon */}
-            <div className="absolute left-0 top-0">
-              {step.status === 'pending' && <Circle size={20} className="text-slate-600" />}
-              {step.status === 'processing' && <Loader2 size={20} className="text-cba-yellow animate-spin" />}
-              {step.status === 'success' && <CheckCircle2 size={20} className="text-emerald-500" />}
-              {step.status === 'warning' && <AlertTriangle size={20} className="text-orange-500" />}
-              {step.status === 'error' && <XCircle size={20} className="text-red-500" />}
-            </div>
-
-            {/* Content */}
-            <div className="space-y-1">
-              <div className={`text-sm font-medium ${step.status === 'processing' ? 'text-cba-yellow' : 'text-slate-200'}`}>
-                {step.label}
+        {logs.map((log) => {
+          const Icon = getIcon(log.category);
+          return (
+            <div key={log.id} className="animate-in slide-in-from-right duration-300">
+              <div className="flex items-center gap-2 mb-1 opacity-50 text-[10px]">
+                <span>{new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}</span>
+                <span>::</span>
+                <span>{log.category}</span>
               </div>
-              
-              {step.details && (
-                <div className="text-xs text-slate-400">
-                  {step.details}
-                </div>
-              )}
-
-              {step.jsonPayload && (
-                <div className="mt-2 bg-slate-900 rounded p-2 border border-slate-800 overflow-hidden">
-                  <div className="flex items-center gap-1 text-[10px] text-slate-500 mb-1 border-b border-slate-800 pb-1">
-                    <Code size={10} /> JSON TRACE
+              <div className="bg-[#131b2e] p-2 rounded border-l-2 border-slate-700 hover:border-slate-500 transition-colors">
+                <div className="flex items-start gap-2">
+                  <Icon size={14} className={`mt-0.5 shrink-0 ${getColor(log.status)}`} />
+                  <div>
+                    <div className="leading-tight">{log.message}</div>
+                    {log.metadata && (
+                      <pre className="mt-1.5 text-[9px] text-slate-500 bg-[#0a0f1e] p-1 rounded overflow-x-hidden">
+                        {JSON.stringify(log.metadata, null, 1).replace(/"|{|}/g, '')}
+                      </pre>
+                    )}
                   </div>
-                  <pre className="text-[10px] font-mono text-green-400 overflow-x-auto whitespace-pre-wrap break-all">
-                    {JSON.stringify(step.jsonPayload, null, 2)}
-                  </pre>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
-
-      <div className="p-3 border-t border-slate-800 bg-slate-900 text-[10px] text-slate-500 text-center font-mono">
-        SYSTEM SECURE • ENCRYPTED • AUDIT LOG ON
+      
+      <div className="p-2 border-t border-slate-800 bg-[#0f1629] text-[9px] text-center text-slate-600">
+        AUDIT_ID: 8829-XJ-291 • ENCRYPTION: AES-256
       </div>
     </div>
   );
